@@ -1,6 +1,5 @@
 'use client'
 
-import { RepoBanner } from './repo-banner'
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
@@ -173,7 +172,8 @@ export function ChatInput({
         </div>
       )}
       <div className="relative">
-        <RepoBanner className="absolute bottom-full inset-x-2 translate-y-1 z-0 pb-2" />
+        {/* RepoBanner removed for proprietary product */}
+        {/* <RepoBanner className="absolute bottom-full inset-x-2 translate-y-1 z-0 pb-2" /> */}
         <div
           className={`shadow-md rounded-2xl relative z-10 bg-background border ${
             dragActive
