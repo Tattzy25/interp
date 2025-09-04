@@ -14,10 +14,10 @@ export const maxDuration = 300
 
 const rateLimitMaxRequests = process.env.RATE_LIMIT_MAX_REQUESTS
   ? parseInt(process.env.RATE_LIMIT_MAX_REQUESTS)
-  : 10
+  : 60
 const ratelimitWindow = process.env.RATE_LIMIT_WINDOW
   ? (process.env.RATE_LIMIT_WINDOW as Duration)
-  : '1d'
+  : '10m'
 
 export async function POST(req: Request) {
   const {
@@ -45,14 +45,21 @@ export async function POST(req: Request) {
     : false
 
   if (limit) {
-    return new Response('You have reached your request limit for the day.', {
-      status: 429,
-      headers: {
-        'X-RateLimit-Limit': limit.amount.toString(),
-        'X-RateLimit-Remaining': limit.remaining.toString(),
-        'X-RateLimit-Reset': limit.reset.toString(),
+    return new Response(
+      JSON.stringify({
+        error: 'rate_limited',
+        message: 'You have reached your request limit.',
+      }),
+      {
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-RateLimit-Limit': limit.amount.toString(),
+          'X-RateLimit-Remaining': limit.remaining.toString(),
+          'X-RateLimit-Reset': limit.reset.toString(),
+        },
       },
-    })
+    )
   }
 
   console.log('userID', userID)
@@ -74,10 +81,10 @@ export async function POST(req: Request) {
       ...modelParams,
     })
 
-    return stream.toTextStreamResponse()
+    return stream.toDataStreamResponse()
   } catch (error: any) {
     const isRateLimitError =
-      error && (error.statusCode === 429 || error.message.includes('limit'))
+      error && (error.statusCode === 429 || error.message?.includes('limit'))
     const isOverloadedError =
       error && (error.statusCode === 529 || error.statusCode === 503)
     const isAccessDeniedError =
@@ -85,38 +92,43 @@ export async function POST(req: Request) {
 
     if (isRateLimitError) {
       return new Response(
-        'The provider is currently unavailable due to request limit. Try using your own API key.',
-        {
-          status: 429,
-        },
+        JSON.stringify({
+          error: 'provider_rate_limited',
+          message:
+            'The provider is currently unavailable due to request limit. Try using your own API key.',
+        }),
+        { status: 429, headers: { 'Content-Type': 'application/json' } },
       )
     }
 
     if (isOverloadedError) {
       return new Response(
-        'The provider is currently unavailable. Please try again later.',
-        {
-          status: 529,
-        },
+        JSON.stringify({
+          error: 'provider_overloaded',
+          message: 'The provider is currently unavailable. Please try again later.',
+        }),
+        { status: 529, headers: { 'Content-Type': 'application/json' } },
       )
     }
 
     if (isAccessDeniedError) {
       return new Response(
-        'Access denied. Please make sure your API key is valid.',
-        {
-          status: 403,
-        },
+        JSON.stringify({
+          error: 'access_denied',
+          message: 'Access denied. Please make sure your API key is valid.',
+        }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } },
       )
     }
 
     console.error('Error:', error)
 
     return new Response(
-      'An unexpected error has occurred. Please try again later.',
-      {
-        status: 500,
-      },
+      JSON.stringify({
+        error: 'unexpected_error',
+        message: 'An unexpected error has occurred. Please try again later.',
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } },
     )
   }
 }

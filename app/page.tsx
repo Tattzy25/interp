@@ -21,6 +21,7 @@ import { experimental_useObject as useObject } from 'ai/react'
 import { usePostHog } from 'posthog-js/react'
 import { SetStateAction, useEffect, useState } from 'react'
 import { useLocalStorage } from 'usehooks-ts'
+import { toast } from '@/components/ui/use-toast'
 
 export default function Home() {
   const [chatInput, setChatInput] = useLocalStorage('chat', '')
@@ -69,11 +70,33 @@ export default function Home() {
     schema,
     onError: (error) => {
       console.error('Error submitting request:', error)
-      if (error.message.includes('limit')) {
+      const raw = error?.message || 'Something went wrong. Please try again.'
+      let message = raw
+      let code: string | undefined
+      if (typeof raw === 'string' && raw.trim().startsWith('{')) {
+        try {
+          const parsed = JSON.parse(raw)
+          if (parsed?.message && typeof parsed.message === 'string') {
+            message = parsed.message
+          }
+          if (parsed?.error && typeof parsed.error === 'string') {
+            code = parsed.error
+          }
+        } catch (_) {
+          // ignore JSON parse failure and fallback to raw
+        }
+      }
+
+      if (!code && /429|rate.?limit|too many/i.test(raw)) {
+        code = 'rate_limited'
+      }
+
+      if (code === 'rate_limited' || /limit/i.test(message)) {
         setIsRateLimited(true)
       }
 
-      setErrorMessage(error.message)
+      setErrorMessage(message)
+      toast({ title: 'Request failed', description: message })
     },
     onFinish: async ({ object: fragment, error }) => {
       if (!error) {
@@ -159,6 +182,8 @@ export default function Home() {
       stop()
     }
 
+    setIsRateLimited(false)
+    setErrorMessage('')
     const content: Message['content'] = [{ type: 'text', text: chatInput }]
     const images = await toMessageImage(files)
 
@@ -193,6 +218,8 @@ export default function Home() {
   }
 
   function retry() {
+    setIsRateLimited(false)
+    setErrorMessage('')
     submit({
       userID: session?.user?.id,
       teamID: userTeam?.id,
