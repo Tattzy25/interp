@@ -1,5 +1,5 @@
 {
-  "name": "bridgit-ai",
+  "name": "code-homie",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -65,5 +65,5 @@
     "typescript": "^5.5.4"
   },
   "license": "PRIVATE",
-  "homepage": "https://bridgit-ai.com"
+  "homepage": "https://codehomie.chat"
 }

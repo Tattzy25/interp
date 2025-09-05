@@ -142,6 +142,9 @@ export function ChatInput({
     }
   }, [isMultiModal])
 
+  // Allow typing except when actively loading or rate-limited
+  const disabled = isLoading || isRateLimited
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -189,7 +192,7 @@ export function ChatInput({
             className="text-normal px-3 resize-none ring-0 bg-inherit w-full m-0 outline-none"
             required={true}
             placeholder="Describe your app..."
-            disabled={isErrored}
+            disabled={disabled}
             value={input}
             onChange={handleInputChange}
             onPaste={isMultiModal ? handlePaste : undefined}
@@ -209,7 +212,7 @@ export function ChatInput({
                 <Tooltip delayDuration={0}>
                   <TooltipTrigger asChild>
                     <Button
-                      disabled={!isMultiModal || isErrored}
+                      disabled={!isMultiModal || isLoading}
                       type="button"
                       variant="outline"
                       size="icon"
@@ -233,7 +236,7 @@ export function ChatInput({
                   <Tooltip delayDuration={0}>
                     <TooltipTrigger asChild>
                       <Button
-                        disabled={isErrored}
+                        disabled={isLoading}
                         variant="default"
                         size="icon"
                         type="submit"

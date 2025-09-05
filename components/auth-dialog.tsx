@@ -25,17 +25,21 @@ export function AuthDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent>
         <VisuallyHidden>
-          <DialogTitle>Sign in to Fragments</DialogTitle>
+          <DialogTitle>Sign in to Code Homie</DialogTitle>
           <DialogDescription>
-            Sign in or create an account to access Fragments
+            Sign in or create an account to access Code Homie
           </DialogDescription>
         </VisuallyHidden>
         <div className="flex justify-center items-center flex-col">
           <h1 className="flex items-center gap-4 text-xl font-bold mb-6 w-full">
-            <div className="flex items-center justify-center rounded-md shadow-md bg-black p-2">
-              <Logo className="text-white w-6 h-6" />
+            <div className="flex items-center justify-center rounded-md shadow-md bg-gradient-to-r from-purple-600 to-cyan-500 p-2">
+              <img 
+                src="https://i.imgur.com/YjlgFGU.png" 
+                alt="Code Homie" 
+                className="w-6 h-6"
+              />
             </div>
-            Sign in to Fragments
+            Sign in to Code Homie
           </h1>
           <div className="w-full">
             <Auth
@@ -45,7 +49,7 @@ export function AuthDialog({
               socialLayout="horizontal"
               onSignUpValidate={validateEmail}
               metadata={{
-                is_fragments_user: true,
+                is_codehomie_user: true,
               }}
             />
           </div>

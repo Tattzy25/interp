@@ -13,7 +13,7 @@ import { FragmentSchema } from '@/lib/schema'
 import { ExecutionResult } from '@/lib/types'
 import { DeepPartial } from 'ai'
 import { ChevronsRight, LoaderCircle, Download } from 'lucide-react'
-import { Dispatch, SetStateAction } from 'react'
+import { Dispatch, SetStateAction, useEffect, useMemo, useState } from 'react'
 import JSZip from 'jszip'
 
 export function Preview({
@@ -42,6 +42,33 @@ export function Preview({
   }
 
   const isLinkAvailable = result?.template !== 'code-interpreter-v1'
+
+  // Streaming-like staged messages for preview loading UX
+  const stages = useMemo(
+    () => [
+      'Queuing build…',
+      'Allocating sandbox…',
+      'Copying files…',
+      'Installing dependencies…',
+      'Starting server…',
+      'Connecting to preview…',
+    ],
+    [],
+  )
+  const [stageIndex, setStageIndex] = useState(0)
+  useEffect(() => {
+    if (!isPreviewLoading) {
+      setStageIndex(0)
+      return
+    }
+    let i = 0
+    setStageIndex(0)
+    const id = setInterval(() => {
+      i = (i + 1) % stages.length
+      setStageIndex(i)
+    }, 600)
+    return () => clearInterval(id)
+  }, [isPreviewLoading, stages])
 
   function exportZip() {
     if (!fragment) return
@@ -81,7 +108,7 @@ export function Preview({
         onValueChange={(value) =>
           onSelectedTabChange(value as 'code' | 'fragment')
         }
-        className="h-full flex flex-col items-start justify-start"
+        className="h-full flex flex-col items-start justify-start relative"
       >
         <div className="w-full p-2 grid grid-cols-3 items-center border-b">
           <TooltipProvider>
@@ -158,7 +185,22 @@ export function Preview({
           )}
         </div>
         {fragment && (
-          <div className="overflow-y-auto w-full h-full">
+          <div className="relative overflow-y-auto w-full h-full">
+            {/* Loading overlay during preview generation */}
+            {selectedTab === 'fragment' && isPreviewLoading && (
+              <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/70 backdrop-blur-sm">
+                <div className="flex flex-col items-center gap-3 px-6 py-5 rounded-xl border bg-card shadow-sm">
+                  <LoaderCircle className="h-5 w-5 animate-spin text-primary" />
+                  <div className="text-sm text-muted-foreground">
+                    {stages[stageIndex]}
+                  </div>
+                  <div className="w-56 h-1 rounded-full bg-muted overflow-hidden">
+                    <div className="h-full bg-primary/70 animate-[shimmer_1.2s_linear_infinite]" style={{ width: '40%' }} />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <TabsContent value="code" className="h-full">
               {(() => {
                 const anyFragment: any = fragment

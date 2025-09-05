@@ -1,4 +1,53 @@
 {
+  "landing-page-pro": {
+    "name": "Professional Landing Page",
+    "lib": ["html", "css", "javascript"],
+    "file": "index.html",
+    "instructions": "Create a stunning, conversion-optimized landing page with hero section, value proposition, features, testimonials, pricing, and strong CTAs. Perfect for any business or service.",
+    "port": null
+  },
+  "saas-landing": {
+    "name": "SaaS Landing Page",
+    "lib": ["html", "css", "javascript"],
+    "file": "index.html", 
+    "instructions": "Generate a high-converting SaaS landing page with product demo, feature highlights, pricing tiers, customer testimonials, and trial/signup flows.",
+    "port": null
+  },
+  "ecommerce-landing": {
+    "name": "E-commerce Landing Page",
+    "lib": ["html", "css", "javascript"],
+    "file": "index.html",
+    "instructions": "Build a product-focused landing page with hero product showcase, features, customer reviews, pricing, and purchase CTAs optimized for sales conversion.",
+    "port": null
+  },
+  "portfolio-website": {
+    "name": "Portfolio Website",
+    "lib": ["html", "css", "javascript"],
+    "file": "index.html",
+    "instructions": "Create a professional portfolio website with work showcase, about section, skills, testimonials, and contact form. Perfect for freelancers and agencies.",
+    "port": null
+  },
+  "business-services": {
+    "name": "Business Services Landing",
+    "lib": ["html", "css", "javascript"],
+    "file": "index.html",
+    "instructions": "Design a service-based business landing page with service offerings, process explanation, case studies, team section, and lead capture forms.",
+    "port": null
+  },
+  "startup-pitch": {
+    "name": "Startup Pitch Page",
+    "lib": ["html", "css", "javascript"],
+    "file": "index.html",
+    "instructions": "Build a compelling startup pitch page with problem/solution, product demo, market opportunity, team, and investor/user acquisition CTAs.",
+    "port": null
+  },
+  "app-landing": {
+    "name": "Mobile App Landing",
+    "lib": ["html", "css", "javascript"],
+    "file": "index.html",
+    "instructions": "Create an app landing page with app screenshots, key features, download links, user testimonials, and app store optimization elements.",
+    "port": null
+  },
   "code-interpreter-v1": {
     "name": "Python data analyst",
     "lib": ["python", "jupyter", "numpy", "pandas", "matplotlib", "seaborn", "plotly"],

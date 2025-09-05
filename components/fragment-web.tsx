@@ -25,6 +25,7 @@ export function FragmentWeb({ result }: { result: ExecutionResultWeb }) {
         className="h-full w-full"
         sandbox="allow-forms allow-scripts allow-same-origin"
         loading="lazy"
+        allow="clipboard-read; clipboard-write; fullscreen"
         src={result.url}
       />
       <div className="p-2 border-t">

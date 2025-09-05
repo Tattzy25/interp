@@ -38,6 +38,15 @@ const ratelimitWindow = process.env.RATE_LIMIT_WINDOW
   : '10m'
 
 export async function POST(req: Request) {
+  const startTime = Date.now()
+  const requestId = `req_${startTime}_${Math.random().toString(36).substr(2, 9)}`
+  
+  // Extract abort signal from request
+  const abortController = new AbortController()
+  req.signal?.addEventListener('abort', () => {
+    abortController.abort()
+  })
+
   const {
     messages,
     userID,
@@ -53,6 +62,15 @@ export async function POST(req: Request) {
     model: LLMModel
     config: LLMModelConfig
   } = await req.json()
+
+  // Log request start (no PII)
+  console.log(`[${requestId}] Request started:`, {
+    model: model,
+    template: template,
+    messageCount: messages?.length || 0,
+    hasApiKey: !!config?.apiKey,
+    timestamp: new Date().toISOString()
+  })
 
   const limit = !config.apiKey
     ? await ratelimit(
@@ -116,13 +134,46 @@ export async function POST(req: Request) {
       system: toPrompt(template),
       messages,
       maxRetries: 0, // do not retry on errors
+      abortSignal: abortController.signal,
       ...modelParams,
     })
 
+    // Log successful completion
+    const duration = Date.now() - startTime
+    console.log(`[${requestId}] Request completed successfully:`, {
+      duration: `${duration}ms`,
+      timestamp: new Date().toISOString()
+    })
+
+    // Note: PostHog events are tracked client-side in page.tsx
+    // Server-side events would require PostHog server SDK if needed
+
     return stream.toTextStreamResponse()
   } catch (error: any) {
+    const duration = Date.now() - startTime
     const incidentId = `inc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    console.error(`Error [${incidentId}]:`, error)
+    
+    // Check if request was aborted
+    const isAborted = abortController.signal.aborted || error.name === 'AbortError'
+    
+    // Log error with duration (no PII)
+    console.error(`[${requestId}] Request failed [${incidentId}]:`, {
+      error: error.message || 'Unknown error',
+      statusCode: error.statusCode,
+      duration: `${duration}ms`,
+      aborted: isAborted,
+      timestamp: new Date().toISOString()
+    })
+
+    // Handle abort specifically
+    if (isAborted) {
+      return createErrorResponse(
+        'request_aborted',
+        'Request was cancelled.',
+        499,
+        incidentId
+      )
+    }
 
     const isRateLimitError =
       error && (error.statusCode === 429 || error.message?.includes('limit'))

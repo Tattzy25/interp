@@ -110,31 +110,27 @@ export function DeployDialog({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="default">
-          <Logo style="e2b" width={16} height={16} className="mr-2" />
+          <img 
+            src="https://i.imgur.com/YjlgFGU.png" 
+            alt="Code Homie" 
+            className="w-4 h-4 mr-2"
+          />
           Deploy
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="p-4 w-80 flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <div className="text-sm font-semibold">Deploy to E2B</div>
+          <div className="text-sm font-semibold">Deploy to Cloud</div>
           <div className="text-sm text-muted-foreground">
-            Deploying the fragment will make it publicly accessible to others via link.
+            Deploying your creation will make it publicly accessible to others via link.
           </div>
           <div className="text-sm text-muted-foreground">
-            The fragment will be available up until the expiration date you choose and you&apos;ll be billed based on our{' '}
-            <a
-              href="https://e2b.dev/docs/pricing"
-              target="_blank"
-              className="underline"
-            >
-              Compute pricing
-            </a>
-            .
+            Your creation will be available up until the expiration date you choose.
           </div>
           <div className="text-sm text-muted-foreground">
-            All new accounts receive $100 worth of compute credits. Upgrade to{' '}
+            All new accounts receive generous free hosting credits. Upgrade to{' '}
             <a
-              href="https://e2b.dev/dashboard?tab=billing"
+              href="https://codehomie.chat"
               target="_blank"
               className="underline"
             >

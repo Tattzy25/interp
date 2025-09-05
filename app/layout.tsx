@@ -8,9 +8,9 @@ import { Inter } from 'next/font/google'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Bridgit AI',
-  description: 'Build modern websites with AI artifacts and real deployments.',
-  metadataBase: new URL('https://bridgit-ai.com'),
+  title: 'Code Homie - Your AI Coding Companion',
+  description: 'Generate stunning, high-converting landing pages and websites with your friendly AI coding companion. From concept to deployment in seconds.',
+  metadataBase: new URL('https://codehomie.chat'),
 }
 
 export default function RootLayout({

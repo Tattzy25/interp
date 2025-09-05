@@ -19,7 +19,7 @@ import { ExecutionResult } from '@/lib/types'
 import { DeepPartial } from 'ai'
 import { experimental_useObject as useObject } from 'ai/react'
 import { usePostHog } from 'posthog-js/react'
-import { SetStateAction, useEffect, useState } from 'react'
+import { SetStateAction, useEffect, useRef, useState } from 'react'
 import { useLocalStorage } from 'usehooks-ts'
 import { toast } from '@/components/ui/use-toast'
 
@@ -65,6 +65,40 @@ export default function Home() {
       : { [selectedTemplate]: templates[selectedTemplate] }
   const lastMessage = messages[messages.length - 1]
 
+  // Resizable panes + preview loading timing
+  const [chatPaneWidth, setChatPaneWidth] = useLocalStorage<number>('chatPaneWidth', 48)
+  const isDraggingRef = useRef(false)
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const previewStartRef = useRef<number | null>(null)
+  const MIN_PREVIEW_MS = 3000
+
+  useEffect(() => {
+    function onMouseMove(e: MouseEvent) {
+      if (!isDraggingRef.current || !containerRef.current) return
+      const rect = containerRef.current.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      const percent = Math.max(20, Math.min(80, (x / rect.width) * 100))
+      setChatPaneWidth(parseFloat(percent.toFixed(2)))
+    }
+    function onMouseUp() {
+      if (!isDraggingRef.current) return
+      isDraggingRef.current = false
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+  }, [setChatPaneWidth])
+
+  function startDrag() {
+    isDraggingRef.current = true
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }
   const { object, submit, isLoading, stop, error } = useObject({
     api: '/api/chat',
     schema,
@@ -103,6 +137,7 @@ export default function Home() {
         // send it to /api/sandbox
         console.log('fragment', fragment)
         setIsPreviewLoading(true)
+        previewStartRef.current = Date.now()
         posthog.capture('fragment_generated', {
           template: fragment?.template,
         })
@@ -125,7 +160,9 @@ export default function Home() {
         setCurrentPreview({ fragment, result })
         setMessage({ result })
         setCurrentTab('fragment')
-        setIsPreviewLoading(false)
+        const elapsed = previewStartRef.current ? Date.now() - previewStartRef.current : 0
+        const remain = Math.max(0, MIN_PREVIEW_MS - elapsed)
+        setTimeout(() => setIsPreviewLoading(false), remain)
 
         // Persist build (best-effort)
         try {
@@ -268,11 +305,11 @@ export default function Home() {
 
   function handleSocialClick(target: 'github' | 'x' | 'discord') {
     if (target === 'github') {
-      window.open('https://github.com/e2b-dev/fragments', '_blank')
+      window.open('https://github.com/codehomie', '_blank')
     } else if (target === 'x') {
-      window.open('https://x.com/e2b', '_blank')
+      window.open('https://x.com/codehomie', '_blank')
     } else if (target === 'discord') {
-      window.open('https://discord.gg/e2b', '_blank')
+      window.open('https://discord.gg/codehomie', '_blank')
     }
 
     posthog.capture(`${target}_click`)
@@ -302,6 +339,8 @@ export default function Home() {
     setCurrentPreview({ fragment: undefined, result: undefined })
   }
 
+  const showPreview = Boolean(fragment)
+
   return (
     <main className="flex min-h-screen max-h-screen">
       {supabase && (
@@ -312,9 +351,13 @@ export default function Home() {
           supabase={supabase}
         />
       )}
-      <div className="grid w-full md:grid-cols-2">
+      <div
+        ref={containerRef}
+        className="flex w-full h-screen overflow-hidden md:flex-row flex-col"
+      >
         <div
-          className={`flex flex-col w-full max-h-full max-w-[800px] mx-auto px-4 overflow-auto ${fragment ? 'col-span-1' : 'col-span-2'}`}
+          className={`flex flex-col max-h-full px-4 overflow-auto ${showPreview ? '' : 'w-full'}`}
+          style={showPreview ? { width: `${chatPaneWidth}%` } : undefined}
         >
           <NavBar
             session={session}
@@ -361,17 +404,31 @@ export default function Home() {
             />
           </ChatInput>
         </div>
-        <Preview
-          teamID={userTeam?.id}
-          accessToken={session?.access_token}
-          selectedTab={currentTab}
-          onSelectedTabChange={setCurrentTab}
-          isChatLoading={isLoading}
-          isPreviewLoading={isPreviewLoading}
-          fragment={fragment}
-          result={result as ExecutionResult}
-          onClose={() => setFragment(undefined)}
-        />
+
+        {showPreview && (
+          <>
+            <div
+              onMouseDown={startDrag}
+              className="hidden md:block w-[6px] cursor-col-resize bg-border hover:bg-primary/40 transition-colors"
+              style={{ height: '100%' }}
+              aria-label="Resize preview pane"
+              role="separator"
+            />
+            <div className="flex-1 min-w-0" style={{ width: `${100 - chatPaneWidth}%` }}>
+              <Preview
+                teamID={userTeam?.id}
+                accessToken={session?.access_token}
+                selectedTab={currentTab}
+                onSelectedTabChange={setCurrentTab}
+                isChatLoading={isLoading}
+                isPreviewLoading={isPreviewLoading}
+                fragment={fragment}
+                result={result as ExecutionResult}
+                onClose={() => setFragment(undefined)}
+              />
+            </div>
+          </>
+        )}
       </div>
     </main>
   )
