@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drag and Drop with Search and Color Picker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #0078d4;
+            height: 100vh;
+            position: relative;
+            transition: background 0.3s ease;
+        }
+
+        .top-center {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        #searchInput {
+            padding: 10px 15px;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+            outline: none;
+            width: 300px;
+        }
+
+        #searchInput:focus {
+            border-color: #0078d4;
+        }
+
+        #searchBtn {
+            padding: 10px 20px;
+            background: #0078d4;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        #searchBtn:hover {
+            background: #106ebe;
+        }
+
+        .drag-drop-area {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            height: 200px;
+            border: 3px dashed #ccc;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 18px;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .drag-drop-area:hover {
+            border-color: #0078d4;
+            background: rgba(255, 255, 255, 1);
+        }
+
+        .drag-drop-area.dragover {
+            border-color: #0078d4;
+            background: rgba(0, 120, 212, 0.1);
+            transform: translate(-50%, -50%) scale(1.05);
+        }
+
+        .bottom-right {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        label[for="colorPicker"] {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        #colorPicker {
+            width: 50px;
+            height: 50px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .file-info {
+            position: absolute;
+            top: 70%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            font-size: 16px;
+            color: #333;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-center">
+        <input type="text" id="searchInput" placeholder="Search..." />
+        <button id="searchBtn">Search</button>
+    </div>
+
+    <div class="drag-drop-area" id="dropArea">
+        Drag & drop files here
+    </div>
+
+    <div class="file-info" id="fileInfo"></div>
+
+    <div class="bottom-right">
+        <label for="colorPicker">Pick color:</label>
+        <input type="color" id="colorPicker" value="#0078d4" />
+    </div>
+
+    <script>
+        // Drag and Drop functionality
+        const dropArea = document.getElementById('dropArea');
+        const fileInfo = document.getElementById('fileInfo');
+
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        // Highlight drop area when item is dragged over it
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        // Handle dropped files
+        dropArea.addEventListener('drop', handleDrop, false);
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function highlight(e) {
+            dropArea.classList.add('dragover');
+        }
+
+        function unhighlight(e) {
+            dropArea.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+
+            handleFiles(files);
+        }
+
+        function handleFiles(files) {
+            if (files.length > 0) {
+                const fileNames = Array.from(files).map(file => file.name).join(', ');
+                const fileCount = files.length;
+                const totalSize = Array.from(files).reduce((total, file) => total + file.size, 0);
+                const sizeInMB = (totalSize / (1024 * 1024)).toFixed(2);
+
+                dropArea.textContent = `✓ Dropped ${fileCount} file(s)`;
+                fileInfo.innerHTML = `
+                    <strong>Files:</strong> ${fileNames}<br>
+                    <strong>Total Size:</strong> ${sizeInMB} MB
+                `;
+                fileInfo.style.display = 'block';
+
+                // Hide file info after 5 seconds
+                setTimeout(() => {
+                    fileInfo.style.display = 'none';
+                    dropArea.textContent = 'Drag & drop files here';
+                }, 5000);
+            }
+        }
+
+        // Search Button functionality
+        document.getElementById('searchBtn').addEventListener('click', function() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (query) {
+                alert('Search for: ' + query);
+            } else {
+                alert('Please enter a search term');
+            }
+        });
+
+        // Allow search with Enter key
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('searchBtn').click();
+            }
+        });
+
+        // Color Picker functionality
+        document.getElementById('colorPicker').addEventListener('input', function(e) {
+            document.body.style.background = e.target.value;
+        });
+
+        // Click to select files as alternative to drag and drop
+        dropArea.addEventListener('click', function() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.multiple = true;
+            input.onchange = function(e) {
+                handleFiles(e.target.files);
+            };
+            input.click();
+        });
+    </script>
+</body>
+</html>
