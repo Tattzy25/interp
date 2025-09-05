@@ -130,7 +130,7 @@ export default function Home() {
         // Persist build (best-effort)
         try {
           await persistBuild({
-            fragment,
+            fragment: fragment as DeepPartial<FragmentSchema>,
             result: result as ExecutionResult,
             userId: session?.user?.id ?? null,
             teamId: userTeam?.id ?? null,

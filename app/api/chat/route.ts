@@ -10,6 +10,24 @@ import { fragmentSchema as schema } from '@/lib/schema'
 import { Templates } from '@/lib/templates'
 import { streamObject, LanguageModel, CoreMessage } from 'ai'
 
+// Helper function to create consistent error responses
+function createErrorResponse(
+  error: string,
+  message: string,
+  status: number,
+  incidentId?: string
+) {
+  const body = {
+    error,
+    message,
+    ...(incidentId && { incident_id: incidentId }),
+  }
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
 export const maxDuration = 300
 
 const rateLimitMaxRequests = process.env.RATE_LIMIT_MAX_REQUESTS
@@ -45,21 +63,15 @@ export async function POST(req: Request) {
     : false
 
   if (limit) {
-    return new Response(
-      JSON.stringify({
-        error: 'rate_limited',
-        message: 'You have reached your request limit.',
-      }),
-      {
-        status: 429,
-        headers: {
-          'Content-Type': 'application/json',
-          'X-RateLimit-Limit': limit.amount.toString(),
-          'X-RateLimit-Remaining': limit.remaining.toString(),
-          'X-RateLimit-Reset': limit.reset.toString(),
-        },
-      },
+    const response = createErrorResponse(
+      'rate_limited',
+      'You have reached your request limit.',
+      429
     )
+    response.headers.set('X-RateLimit-Limit', limit.amount.toString())
+    response.headers.set('X-RateLimit-Remaining', limit.remaining.toString())
+    response.headers.set('X-RateLimit-Reset', limit.reset.toString())
+    return response
   }
 
   console.log('userID', userID)
@@ -87,12 +99,10 @@ export async function POST(req: Request) {
 
   if (providerId && requiresKey.has(providerId) && !effectiveApiKey) {
     const providerName = (model as any)?.provider || providerId
-    return new Response(
-      JSON.stringify({
-        error: 'api_key_missing',
-        message: `Missing API key for ${providerName}. Enter an API key in LLM settings or set ${envVarName} on the server.`,
-      }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } },
+    return createErrorResponse(
+      'api_key_missing',
+      `Missing API key for ${providerName}. Enter an API key in LLM settings or set ${envVarName} on the server.`,
+      400
     )
   }
 
@@ -109,8 +119,11 @@ export async function POST(req: Request) {
       ...modelParams,
     })
 
-    return stream.toDataStreamResponse()
+    return stream.toTextStreamResponse()
   } catch (error: any) {
+    const incidentId = `inc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    console.error(`Error [${incidentId}]:`, error)
+
     const isRateLimitError =
       error && (error.statusCode === 429 || error.message?.includes('limit'))
     const isOverloadedError =
@@ -119,44 +132,37 @@ export async function POST(req: Request) {
       error && (error.statusCode === 403 || error.statusCode === 401)
 
     if (isRateLimitError) {
-      return new Response(
-        JSON.stringify({
-          error: 'provider_rate_limited',
-          message:
-            'The provider is currently unavailable due to request limit. Try using your own API key.',
-        }),
-        { status: 429, headers: { 'Content-Type': 'application/json' } },
+      return createErrorResponse(
+        'provider_rate_limited',
+        'The provider is currently unavailable due to request limit. Try using your own API key.',
+        429,
+        incidentId
       )
     }
 
     if (isOverloadedError) {
-      return new Response(
-        JSON.stringify({
-          error: 'provider_overloaded',
-          message: 'The provider is currently unavailable. Please try again later.',
-        }),
-        { status: 529, headers: { 'Content-Type': 'application/json' } },
+      return createErrorResponse(
+        'provider_overloaded',
+        'The provider is currently unavailable. Please try again later.',
+        529,
+        incidentId
       )
     }
 
     if (isAccessDeniedError) {
-      return new Response(
-        JSON.stringify({
-          error: 'access_denied',
-          message: 'Access denied. Please make sure your API key is valid.',
-        }),
-        { status: 403, headers: { 'Content-Type': 'application/json' } },
+      return createErrorResponse(
+        'access_denied',
+        'Access denied. Please make sure your API key is valid.',
+        403,
+        incidentId
       )
     }
 
-    console.error('Error:', error)
-
-    return new Response(
-      JSON.stringify({
-        error: 'unexpected_error',
-        message: 'An unexpected error has occurred. Please try again later.',
-      }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } },
+    return createErrorResponse(
+      'unexpected_error',
+      'An unexpected error has occurred. Please try again later.',
+      500,
+      incidentId
     )
   }
 }
