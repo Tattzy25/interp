@@ -30,11 +30,15 @@ export function getModelClient(model: LLMModel, config: LLMModelConfig) {
   const { apiKey, baseURL } = config
 
   const providerConfigs = {
-    anthropic: () => createAnthropic({ apiKey, baseURL })(modelNameString),
-    openai: () => createOpenAI({ apiKey, baseURL })(modelNameString),
+    // Use env fallback for Anthropic if user did not provide an API key
+    anthropic: () => createAnthropic({ apiKey: apiKey || process.env.ANTHROPIC_API_KEY, baseURL })(modelNameString),
+    // Use env fallback for OpenAI
+    openai: () => createOpenAI({ apiKey: apiKey || process.env.OPENAI_API_KEY, baseURL })(modelNameString),
+    // Use env fallback for Google Generative AI
     google: () =>
-      createGoogleGenerativeAI({ apiKey, baseURL })(modelNameString),
-    mistral: () => createMistral({ apiKey, baseURL })(modelNameString),
+      createGoogleGenerativeAI({ apiKey: apiKey || process.env.GOOGLE_AI_API_KEY, baseURL })(modelNameString),
+    // Use env fallback for Mistral
+    mistral: () => createMistral({ apiKey: apiKey || process.env.MISTRAL_API_KEY, baseURL })(modelNameString),
     groq: () =>
       createOpenAI({
         apiKey: apiKey || process.env.GROQ_API_KEY,

@@ -68,6 +68,34 @@ export async function POST(req: Request) {
   console.log('model', model)
   // console.log('config', config)
 
+  // Preflight: ensure API key is available for providers that require it
+  const providerId = (model as any)?.providerId as string | undefined
+  const providerEnvMap: Record<string, string> = {
+    anthropic: 'ANTHROPIC_API_KEY',
+    openai: 'OPENAI_API_KEY',
+    google: 'GOOGLE_AI_API_KEY',
+    mistral: 'MISTRAL_API_KEY',
+    groq: 'GROQ_API_KEY',
+    togetherai: 'TOGETHER_API_KEY',
+    fireworks: 'FIREWORKS_API_KEY',
+    xai: 'XAI_API_KEY',
+    deepseek: 'DEEPSEEK_API_KEY',
+  }
+  const requiresKey = new Set(Object.keys(providerEnvMap))
+  const envVarName = providerId ? providerEnvMap[providerId] : undefined
+  const effectiveApiKey = config?.apiKey || (envVarName ? (process.env as any)[envVarName] : undefined)
+
+  if (providerId && requiresKey.has(providerId) && !effectiveApiKey) {
+    const providerName = (model as any)?.provider || providerId
+    return new Response(
+      JSON.stringify({
+        error: 'api_key_missing',
+        message: `Missing API key for ${providerName}. Enter an API key in LLM settings or set ${envVarName} on the server.`,
+      }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } },
+    )
+  }
+
   const { model: modelNameString, apiKey: modelApiKey, ...modelParams } = config
   const modelClient = getModelClient(model, config)
 

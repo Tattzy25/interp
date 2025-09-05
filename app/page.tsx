@@ -126,6 +126,19 @@ export default function Home() {
         setMessage({ result })
         setCurrentTab('fragment')
         setIsPreviewLoading(false)
+
+        // Persist build (best-effort)
+        try {
+          await persistBuild({
+            fragment,
+            result: result as ExecutionResult,
+            userId: session?.user?.id ?? null,
+            teamId: userTeam?.id ?? null,
+            posthog,
+          })
+        } catch (e) {
+          console.warn('Persist build failed silently:', e)
+        }
       }
     },
   })
@@ -362,4 +375,60 @@ export default function Home() {
       </div>
     </main>
   )
+}
+
+
+// Persist successful builds to Supabase when enabled (best-effort)
+async function persistBuild({
+  fragment,
+  result,
+  userId,
+  teamId,
+  posthog,
+}: {
+  fragment: DeepPartial<FragmentSchema>
+  result: ExecutionResult
+  userId: string | null
+  teamId: string | null
+  posthog: ReturnType<typeof usePostHog>
+}) {
+  if (!supabase) return
+  try {
+    const payload: any = {
+      user_id: userId,
+      team_id: teamId,
+      template: fragment.template ?? null,
+      title: fragment.title ?? null,
+      description: fragment.description ?? null,
+      file_path: fragment.file_path ?? null,
+      sbx_id: (result as any)?.sbxId ?? null,
+      url:
+        (result as any)?.template !== 'code-interpreter-v1'
+          ? (result as any)?.url ?? null
+          : null,
+    }
+
+    const { data: buildRow, error: buildError } = await supabase
+      .from('builds')
+      .insert(payload)
+      .select('id')
+      .single()
+
+    if (buildError) throw buildError
+
+    const buildId = (buildRow as any)?.id
+
+    if (buildId && fragment.file_path && fragment.code) {
+      await supabase.from('build_files').insert({
+        build_id: buildId,
+        file_path: fragment.file_path,
+        content: fragment.code,
+      } as any)
+    }
+
+    toast({ title: 'Saved build', description: 'Your fragment was saved.' })
+    posthog?.capture('build_persisted', { build_id: buildId })
+  } catch (err) {
+    console.warn('Build persistence skipped or failed:', err)
+  }
 }
