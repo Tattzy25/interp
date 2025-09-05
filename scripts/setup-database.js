@@ -45,7 +45,7 @@ class DatabaseSetup {
       },
       global: {
         headers: {
-          'User-Agent': 'fragments-db-setup/1.0.0'
+          'User-Agent': 'codehomie-db-setup/1.0.0'
         }
       }
     });

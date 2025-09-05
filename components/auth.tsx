@@ -286,8 +286,6 @@ function SignUpForm({
   metadata,
 }: SignUpFormProps) {
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -295,29 +293,25 @@ function SignUpForm({
     setLoading(true)
 
     try {
-      if (password !== confirmPassword) {
-        throw new Error('Passwords do not match')
-      }
       if (onSignUpValidate) {
-        const isValid = await onSignUpValidate(email, password)
+        const isValid = await onSignUpValidate(email, '')
         if (!isValid) {
           throw new Error(
             'Invalid email address. Please use a different email.',
           )
         }
       }
-      const { data, error } = await supabaseClient.auth.signUp({
+      
+      // Use OTP flow for passwordless sign up
+      const { error } = await supabaseClient.auth.signInWithOtp({
         email,
-        password,
         options: {
           emailRedirectTo: redirectTo,
           data: metadata,
         },
       })
       if (error) throw error
-      if (data.user && !data.session) {
-        setMessage('Check your email for the confirmation link.')
-      }
+      setMessage('Check your email for your one-time password.')
     } catch (error: any) {
       setError(error.message || 'An unexpected error occurred.')
     } finally {
@@ -343,42 +337,13 @@ function SignUpForm({
           />
         </div>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
-        <div className="relative">
-          <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id="password"
-            type="password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="pl-10"
-            autoComplete="new-password"
-          />
-        </div>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="confirm-password">Confirm Password</Label>
-        <div className="relative">
-          <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id="confirm-password"
-            type="password"
-            placeholder="••••••••"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-            className="pl-10"
-            autoComplete="new-password"
-          />
-        </div>
+      <div className="text-sm text-muted-foreground">
+        No password needed! We'll send you a secure link to sign in.
       </div>
 
       <Button type="submit" className="w-full" disabled={loading}>
         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Sign Up
+        Send OTP Link
       </Button>
     </form>
   )
@@ -396,7 +361,7 @@ function MagicLink({
 }: SubComponentProps) {
   const [email, setEmail] = useState('')
 
-  const handleMagicLinkSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleOtpSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     clearMessages()
     setLoading(true)
@@ -407,14 +372,14 @@ function MagicLink({
       },
     })
     if (error) setError(error.message)
-    else setMessage('Check your email for the magic link.')
+    else setMessage('Check your email for your OTP code and click the link to sign in.')
     setLoading(false)
   }
 
   return (
     <form
-      id="auth-magic-link"
-      onSubmit={handleMagicLinkSignIn}
+      id="auth-otp"
+      onSubmit={handleOtpSignIn}
       className="space-y-4"
     >
       <div className="space-y-2">
@@ -435,7 +400,7 @@ function MagicLink({
       </div>
       <Button type="submit" className="w-full" disabled={loading}>
         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Send Magic Link
+        One Time Password
       </Button>
     </form>
   )

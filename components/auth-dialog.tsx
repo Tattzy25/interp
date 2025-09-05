@@ -32,21 +32,20 @@ export function AuthDialog({
         </VisuallyHidden>
         <div className="flex justify-center items-center flex-col">
           <h1 className="flex items-center gap-4 text-xl font-bold mb-6 w-full">
-            <div className="flex items-center justify-center rounded-md shadow-md bg-gradient-to-r from-purple-600 to-cyan-500 p-2">
-              <img 
-                src="https://i.imgur.com/YjlgFGU.png" 
-                alt="Code Homie" 
-                className="w-6 h-6"
-              />
-            </div>
+            <img 
+              src="https://i.imgur.com/YjlgFGU.png" 
+              alt="Code Homie" 
+              className="w-10 h-10"
+            />
             Sign in to Code Homie
           </h1>
           <div className="w-full">
             <Auth
               supabaseClient={supabase}
-              view={view}
-              providers={['github', 'google']}
-              socialLayout="horizontal"
+              view="magic_link"
+              providers={[]}
+              onlyThirdPartyProviders={false}
+              magicLink={true}
               onSignUpValidate={validateEmail}
               metadata={{
                 is_codehomie_user: true,

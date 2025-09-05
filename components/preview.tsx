@@ -37,12 +37,6 @@ export function Preview({
   result?: ExecutionResult
   onClose: () => void
 }) {
-  if (!fragment) {
-    return null
-  }
-
-  const isLinkAvailable = result?.template !== 'code-interpreter-v1'
-
   // Streaming-like staged messages for preview loading UX
   const stages = useMemo(
     () => [
@@ -69,6 +63,12 @@ export function Preview({
     }, 600)
     return () => clearInterval(id)
   }, [isPreviewLoading, stages])
+
+  if (!fragment) {
+    return null
+  }
+
+  const isLinkAvailable = result?.template !== 'code-interpreter-v1'
 
   function exportZip() {
     if (!fragment) return
